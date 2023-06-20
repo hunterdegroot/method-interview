@@ -16,6 +16,7 @@ class Upload extends Component {
         this.state = {
             data: [],
             selectedFile: null,
+            processed: false,
         }
     }
 
@@ -31,18 +32,34 @@ class Upload extends Component {
             }).then(res => this.setState({
                 data: res.data.data,
                 batchId: res.data.batchId,
+                processed: false
             }));
         } catch (error) {
             console.log(error)
         }
     }
 
+    process = async () => {
+        const url = `http://localhost:5000/api/batch/process/${this.state.batchId}`
+        try {
+            await axios.get(url).then(res => this.setState({
+                processed: true,
+            }));
+        } catch (error) {
+            console.log(error)
+        }
+        this.setState()
+    }
+
     handleFileSelect = (event) => {
-        this.setState({ selectedFile: event.target.files[0] })
+        this.setState({
+            selectedFile: event.target.files[0],
+            processed: false
+        })
     }
 
     render() {
-        const { data } = this.state
+        const { data, processed } = this.state
         const columns = [
             {
                 Header: 'Employee Name',
@@ -66,18 +83,14 @@ class Upload extends Component {
             },
         ]
 
-        let showTable = true
-        if (!data.length) {
-            showTable = false
-        }
-
         return (
             <Wrapper>
                 <form onSubmit={(e) => { e.preventDefault(); this.preProcess(this.state.selectedFile) }}>
                     <input type="file" onChange={this.handleFileSelect} />
                     <input type="submit" value="Upload File" />
                 </form>
-                {showTable && (
+                <br />
+                {!!data.length && (
                     <ReactTable
                         data={data}
                         columns={columns}
@@ -86,6 +99,13 @@ class Upload extends Component {
                         minRows={0}
                     />
                 )}
+                <br />
+                {!!data.length && !processed && (
+                    <form onSubmit={(e) => { e.preventDefault(); this.process(this.state.selectedFile) }}>
+                        <input type="submit" value="Process" />
+                    </form>
+                )}
+                {processed && <h3>Processing queued. Check reports tab for status.</h3>}
             </Wrapper>
         )
     }

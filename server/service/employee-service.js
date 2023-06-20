@@ -1,4 +1,10 @@
 const Employee = require('../models/employee-model')
+const { Method, Environments } = require('method-node');
+
+const method = new Method({
+    apiKey: 'sk_thcA7AdE9xce4r9zRRDCmfK3',
+    env: Environments.dev,
+});
 
 async function findOrcreate(employeeData) {
     let employee;
@@ -44,7 +50,7 @@ async function addEntity(employee) {
     });
 
     employee.entityId = entity.id;
-    entity.save();
+    employee.save();
 
     return entity;
 }

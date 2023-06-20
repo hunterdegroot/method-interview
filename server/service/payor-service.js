@@ -1,4 +1,10 @@
 const Payor = require('../models/payor-model')
+const { Method, Environments } = require('method-node');
+
+const method = new Method({
+  apiKey: 'sk_thcA7AdE9xce4r9zRRDCmfK3',
+  env: Environments.dev,
+});
 
 async function findOrCreate(payorData) {
     let payor;
@@ -38,7 +44,7 @@ async function addEntity(payor) {
         corporation: {
             name: payor.name,
             dba: payor.dba,
-            ein: payorData.ein,
+            ein: payor.ein,
             owners: [],
         },
         address: {
@@ -51,6 +57,7 @@ async function addEntity(payor) {
     });
 
     payor.entityId = entity.id;
+    payor.save();
     return entity;
 }
 

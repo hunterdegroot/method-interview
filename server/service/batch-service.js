@@ -1,21 +1,6 @@
 const Batch = require('../models/batch-model')
-const paymentService = require('../service/payments-service')
-
-async function process(batchId) {
-    const batch = (await Batch.find({ _id: batchId }))[0];
-    const payments = [];
-
-    for (let payment of batch.payments) {
-        try {
-            await paymentService.process(payment);
-        } catch (e) {
-            console.log(e)
-        }
-    }
-
-    batch.payments = payments;
-    batch.save();
-}
+const Payment = require('../models/payment-model')
+const paymentService = require('./payment-service')
 
 async function preProcess(data) {
     const batch = new Batch();
@@ -35,6 +20,14 @@ async function preProcess(data) {
     return batch;
 }
 
+async function que(batchId) {
+    const batch = (await Batch.find({ _id: batchId }))[0];
+    for (const paymentId of batch.payments) {
+        const payment = (await Payment.find({ _id: paymentId }))[0]
+        paymentService.que(payment);
+    }
+}
+
 function tableData(batchData) {
     return batchData.map(row => ({
         name: row.Employee.FirstName._text + ' ' + row.Employee.LastName._text,
@@ -45,4 +38,4 @@ function tableData(batchData) {
     }))
 }
 
-module.exports = { preProcess, process, tableData }
+module.exports = { preProcess, que, tableData }

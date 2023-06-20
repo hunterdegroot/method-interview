@@ -1,15 +1,22 @@
-// const batchService = require('../service/batch-service');
-const path = require('path');
+const reportService = require('../service/report-service');
 
-report = async (req, res) => {
-    console.log()
-    res.sendFile(path.join(__dirname, '../uploads', 'a.csv'));
+accountReport = async (req, res) => {
+    res.attachment('accounts-report.csv');
+    res.status(200).send(await reportService.accountReport());
+}
 
-    // return res.status(200).json({
-    //     success: true,
-    // })
+branchReport = async (req, res) => {
+    res.attachment('branch-report.csv');
+    res.status(200).send(await reportService.branchReport());
+}
+
+paymentReport = async (req, res) => {
+    res.attachment('payment-report.csv');
+    res.status(200).send(await reportService.paymentReport());
 }
 
 module.exports = {
-    report,
+    accountReport,
+    branchReport,
+    paymentReport
 }

@@ -13,14 +13,21 @@ export default class Report extends Component {
     constructor(props) {
         super(props)
     }
+
+    downloadReport(e) {
+        e.preventDefault();
+        window.location = 'http://localhost:5000/api/report/' + document.getElementById('report').value;
+    }
+
+
     render() {
         return (
             <Wrapper>
-                <form onSubmit={(e) => { e.preventDefault(); window.location = 'http://localhost:5000/api/report' }}>
-                    <select name="reports" id="reports">
-                        <option value="total-pmts-per-acct">Total payments per account</option>
-                        <option value="total-pmts-per-branch">Total payments per branch</option>
-                        <option value="pmt-status">Payment status</option>
+                <form onSubmit={this.downloadReport}>
+                    <select name="report" id="report">
+                        <option value="account">Total payments per account</option>
+                        <option value="branch">Total payments per branch</option>
+                        <option value="payment">Payment status</option>
                     </select>
                     <Input type="submit" value="Download" />
                 </form>

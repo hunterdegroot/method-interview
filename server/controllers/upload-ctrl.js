@@ -8,7 +8,6 @@ preProcessBatch = async (req, res) => {
     var result = convert.xml2json(xml, { compact: true, spaces: 4 });
     const batchData = JSON.parse(result);
     const batchId = (await batchService.preProcess(batchData.root.row)).id;
-    console.log(batchService.tableData(JSON.parse(result).root.row))
     return res.status(200).json({
         success: true,
         data: batchService.tableData(JSON.parse(result).root.row),
@@ -17,10 +16,9 @@ preProcessBatch = async (req, res) => {
 }
 
 processBatch = async (req, res) => {
-    batchService.process(req.params.batchId);
+    await batchService.que(req.params.batchId);
     return res.status(200).json({
         success: true,
-        fileName: file.path
     })
 }
 
