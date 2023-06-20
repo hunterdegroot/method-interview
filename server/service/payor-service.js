@@ -2,18 +2,14 @@ const Payor = require('../models/payor-model')
 const { Method, Environments } = require('method-node');
 
 const method = new Method({
-  apiKey: 'sk_thcA7AdE9xce4r9zRRDCmfK3',
-  env: Environments.dev,
+    apiKey: 'sk_thcA7AdE9xce4r9zRRDCmfK3',
+    env: Environments.dev,
 });
 
 async function findOrCreate(payorData) {
-    let payor;
-    await Payor.find({ dunkinId: payorData.DunkinId._text, accountNumber: payorData.AccountNumber._text },
-        (err, payors) => {
-            payor = payors && payors.length > 0 ? payors[0] : null;
-        }
-    );
-    if (!payor) payor = create(payorData);
+    const payors = await Payor.find({ dunkinId: payorData.DunkinId._text, accountNumber: payorData.AccountNumber._text });
+    let payor = payors && payors.length > 0 ? payors[0] : null;
+    if (!payor) payor = await create(payorData);
     return payor;
 }
 
@@ -34,7 +30,7 @@ async function create(payorData) {
     }
     payor.address = address;
 
-    payor.save();
+    await payor.save();
     return payor;
 }
 
@@ -57,7 +53,7 @@ async function addEntity(payor) {
     });
 
     payor.entityId = entity.id;
-    payor.save();
+    await payor.save();
     return entity;
 }
 

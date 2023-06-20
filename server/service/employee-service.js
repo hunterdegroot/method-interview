@@ -8,12 +8,9 @@ const method = new Method({
 
 async function findOrcreate(employeeData) {
     let employee;
-    await Employee.find({ dunkinId: employeeData.DunkinId._text },
-        (err, employees) => {
-            employee = employees && employees.length > 0 ? employees[0] : null;
-        }
-    );
-    if (!employee) employee = create(employeeData);
+    const employees = await Employee.find({ dunkinId: employeeData.DunkinId._text });
+    employee = employees && employees.length > 0 ? employees[0] : null;
+    if (!employee) employee = await create(employeeData);
     return employee;
 }
 
@@ -26,7 +23,7 @@ async function create(employeeData) {
     employee.dob = employeeData.DOB._text;
     employee.phoneNumber = employeeData.PhoneNumber._text
 
-    employee.save();
+    await employee.save();
     return employee;
 }
 
@@ -36,22 +33,14 @@ async function addEntity(employee) {
         individual: {
             first_name: employee.firstName,
             last_name: employee.lastName,
-            phone: employee.phoneNumber,
+            phone: '15121231111',
             email: employee.email ? employee.email : 'kevin.doyle@gmail.com',
             dob: employee.dob.replace(/(..).(..).(....)/, "$3-$1-$2"),
-        },
-        address: {
-            line1: '3300 N Interstate 35',
-            line2: null,
-            city: 'Austin',
-            state: 'TX',
-            zip: '78705',
-        },
+        }
     });
 
     employee.entityId = entity.id;
-    employee.save();
-
+    await employee.save();
     return entity;
 }
 

@@ -24,7 +24,7 @@ async function que(batchId) {
     const batch = (await Batch.find({ _id: batchId }))[0];
     for (const paymentId of batch.payments) {
         const payment = (await Payment.find({ _id: paymentId }))[0]
-        paymentService.que(payment);
+        await paymentService.que(payment);
     }
 }
 

@@ -7,14 +7,10 @@ const method = new Method({
   env: Environments.dev,
 });
 
-async function createOrFindDestinationAccount(holderId, plaidId, loanAccountNumber) {
-  let account;
-  await DestinationAccount.find({ holderId, plaidId, loanAccountNumber },
-    (err, accounts) => {
-      account = accounts && accounts.length > 0 ? accounts[0] : null;
-    }
-  );
-  if (!account) account = createDestinationAccount(holderId, plaidId, loanAccountNumber);
+async function findOrCreateDestinationAccount(holderId, plaidId, loanAccountNumber) {
+  const accounts = await DestinationAccount.find({ holderId, plaidId, loanAccountNumber });
+  let account = accounts && accounts.length > 0 ? accounts[0] : null;
+  if (!account) account = await createDestinationAccount(holderId, plaidId, loanAccountNumber);
   return account;
 }
 
@@ -34,18 +30,14 @@ async function createDestinationAccount(holderId, plaidId, loanAccountNumber) {
   })
 
   account.methodId = methodAccount.id;
-  account.save();
+  await account.save();
   return account;
 }
 
-async function createOrFindSourceAccount(holderId, accountNumber, routingNumber) {
-  let account;
-  await SourceAccount.find({ holderId, accountNumber, routingNumber },
-    (err, accounts) => {
-      account = accounts && accounts.length > 0 ? accounts[0] : null;
-    }
-  );
-  if (!account) account = createSourceAccount(holderId, accountNumber, routingNumber);
+async function findOrCreateSourceAccount(holderId, accountNumber, routingNumber) {
+  const accounts = await SourceAccount.find({ holderId, accountNumber, routingNumber });
+  let account = accounts && accounts.length > 0 ? accounts[0] : null;
+  if (!account) account = await createSourceAccount(holderId, accountNumber, routingNumber);
   return account;
 }
 
@@ -63,11 +55,11 @@ async function createSourceAccount(holderId, accountNumber, routingNumber) {
   })
 
   account.methodId = methodAccount.id;
-  account.save();
+  await account.save();
   return account;
 }
 
 module.exports = {
-  createOrFindDestinationAccount,
-  createOrFindSourceAccount,
+  findOrCreateDestinationAccount,
+  findOrCreateSourceAccount,
 }

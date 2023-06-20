@@ -44,44 +44,44 @@ async function preProcess(data) {
 async function process(payment) {
     try {
         const employee = (await Employee.find({ _id: payment.employee }))[0]
-        await employeeService.addEntity(employee);
+        if (!employee.entityId) await employeeService.addEntity(employee);
 
         const payor = (await Payor.find({ _id: payment.payor }))[0]
-        await payorService.addEntity(payor);
+        if (!payor.entityId) await payorService.addEntity(payor);
 
         const payee = (await Payee.find({ _id: payment.payee }))[0]
 
-        payment.destAcctId = (await accountService.createOrFindDestinationAccount(
+        payment.destAcctId = (await accountService.findOrCreateDestinationAccount(
             employee.entityId,
             payee.plaidId,
             payee.loanAccountNumber)).methodId;
 
-        payment.srcAcctId = (await accountService.createOrFindSourceAccount(
+        payment.srcAcctId = (await accountService.findOrCreateSourceAccount(
             payor.entityId,
             payor.accountNumber,
             payor.abaRouting)).methodId;
 
+        const methodPayment = await method.payments.create({
+            amount: parseInt(payment.amount * 100),
+            source: payment.srcAcctId,
+            destination: payment.destAcctId,
+            description: 'Loan Pmt',
+        });
+
+        payment.methodPaymentId = methodPayment.id;
         payment.status = 'processed'
-        payment.save();
+        await payment.save();
     } catch (e) {
         console.log(e)
         payment.status = 'errored'
         payment.error = e;
-        payment.save();
+        await payment.save();
     }
-    // async function createPayment(srcAcct, destAcct, amount) {
-    //     const payment = await method.payments.create({
-    //       amount: parseInt(amount * 100),
-    //       source: srcAcct.id,
-    //       destination: destAcct.id,
-    //       description: 'Loan Pmt',
-    //     });
-    //   }
 }
 
 async function que(payment) {
     payment.status = 'processing'
-    payment.save();
+    await payment.save();
 }
 
 module.exports = { create, preProcess, process, que }
