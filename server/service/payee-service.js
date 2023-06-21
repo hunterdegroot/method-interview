@@ -1,4 +1,3 @@
-// create method entity
 const Payee = require('../models/payee-model')
 
 async function findOrCreate(payeeData) {

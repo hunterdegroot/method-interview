@@ -3,19 +3,21 @@ const Payment = require('../models/payment-model')
 const paymentService = require('./payment-service')
 
 async function preProcess(data) {
-    const batch = new Batch();
+    const batchObj = {};
     const payments = [];
 
     for (let i = 0; i < data.length; i++) {
-        try {
-            const payment = await paymentService.preProcess(data[i])
-            payments.push(payment);
-        } catch (e) {
-            console.log(e)
-        }
+        payments.push(paymentService.create(data[i]))
+        // try {
+        //     const payment = await paymentService.preProcess(data[i])
+        //     payments.push(payment);
+        // } catch (e) {
+        //     console.log(e)
+        // }
     }
 
-    batch.payments = payments;
+    batchObj.payments = payments;
+    const batch = new Batch(batchObj)
     await batch.save();
     return batch;
 }

@@ -14,19 +14,52 @@ const method = new Method({
     env: Environments.dev,
 });
 
-async function create(rowData) {
-    const payment = new Payment();
+function create(rowData) {
+    return {
+        employee: {
+            dunkinId: rowData.Employee.DunkinId._text,
+            dunkinBranch: rowData.Employee.DunkinBranch._text,
+            firstName: rowData.Employee.FirstName._text,
+            lastName: rowData.Employee.LastName._text,
+            dob: rowData.Employee.DOB._text,
+            phoneNumber: '15121231111'
+            // rowData.Employee.PhoneNumber._text,
+        },
+        payor: {
+            dunkinId: rowData.Payor.DunkinId._text,
+            abaRouting: rowData.Payor.ABARouting._text,
+            accountNumber: rowData.Payor.AccountNumber._text,
+            name: rowData.Payor.Name._text,
+            dba: rowData.Payor.DBA._text,
+            ein: rowData.Payor.EIN._text,
+            address: {
+                line1: rowData.Payor.Address.Line1._text,
+                line2: rowData.Payor.Address.Line2 ? payorData.Address.Line2._text : undefined,
+                city: rowData.Payor.Address.City._text,
+                state: rowData.Payor.Address.State._text,
+                zip: rowData.Payor.Address.Zip._text,
+            }
+        },
+        payee: {
+            plaidId: rowData.Payee.PlaidId._text,
+            loanAccountNumber: rowData.Payee.LoanAccountNumber._text
+        },
+        amount: Number(rowData.Amount._text.replace(/[^0-9.-]+/g, ""))
+    }
 
-    const employee = await employeeService.getEmployee(rowData.Employee);
-    const payor = await payorService.getPayor(rowData.Payor);
-    const payee = await payeeService.getPayee(rowData.Payee);
 
-    payment.employee = employee;
-    payment.payor = payor;
-    payment.payee = payee;
-    payment.amount = Number(rowData.Amount._text.replace(/[^0-9.-]+/g, ""));
+    // const payment = new Payment();
 
-    return await payment.save();
+    // const employee = await employeeService.getEmployee(rowData.Employee);
+    // const payor = await payorService.getPayor(rowData.Payor);
+    // const payee = await payeeService.getPayee(rowData.Payee);
+
+    // payment.employee = employee;
+    // payment.payor = payor;
+    // payment.payee = payee;
+    // payment.amount = Number(rowData.Amount._text.replace(/[^0-9.-]+/g, ""));
+
+    // return await payment.save();
 }
 
 async function preProcess(data) {
