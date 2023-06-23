@@ -25,6 +25,7 @@ async function stage(batchData) {
 }
 
 async function preProcess() {
+    if((await Batch.find({ status: 'preProcessing' })).length) return;
     const batches = await Batch.find({ status: 'queued' });
     console.log(batches.length)
     await markQueuedBatchesPreProcessing(batches);
@@ -35,7 +36,7 @@ async function preProcess() {
     for (const batch of batches) {
         batch.status = 'preProcessed';
         for (const payment of batch.payments) {
-            if (payment.status == 'preprocessing') promises.push(paymentService.process(payment, entityAndAccountMap));
+            if (payment.status == 'preProcessing') promises.push(paymentService.process(payment, entityAndAccountMap));
         }
     }
 
@@ -54,7 +55,7 @@ async function createEntityAndAccountMap(batches) {
     const entityAndAccountMap = (await EntityAndAccountMap.find())[0];
     for (const batch of batches) {
         for (const payment of batch.payments) {
-            if (payment.status == 'preprocessing') await paymentService.createEntitiesAndAccounts(payment, entityAndAccountMap);
+            if (payment.status == 'preProcessing') await paymentService.createEntitiesAndAccounts(payment, entityAndAccountMap);
         }
         await entityAndAccountMap.save();
         await batch.save();
@@ -65,10 +66,9 @@ async function createEntityAndAccountMap(batches) {
 
 async function markQueuedBatchesPreProcessing(batches) {
     for (const batch of batches) {
-        batch.status = 'preprocessing';
-        await batch.save();
+        batch.status = 'preProcessing';
         for (const payment of batch.payments) {
-            if (payment.status === 'queued') payment.status = 'preprocessing'
+            if (payment.status === 'queued') payment.status = 'preProcessing'
         }
         await batch.save();
     }
@@ -98,7 +98,7 @@ async function updatePreProcessStatus(batch) {
             break;
         }
     }
-    batch.save();
+    await batch.save();
 }
 
 async function updateProcessStatus() {
@@ -109,7 +109,7 @@ async function updateProcessStatus() {
             if (await paymentService.updateProcessStatus(payment) != 'sent') batch.status = 'preProcessed';
         }
     }
-    batch.save();
+    await batch.save();
 }
 
 function tableData(batchData) {
