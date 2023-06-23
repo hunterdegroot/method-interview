@@ -1,4 +1,3 @@
-const Employee = require('../models/employee-model')
 const { Method, Environments } = require('method-node');
 
 const method = new Method({
@@ -6,28 +5,30 @@ const method = new Method({
     env: Environments.dev,
 });
 
-async function findOrcreate(employeeData) {
-    let employee;
-    const employees = await Employee.find({ dunkinId: employeeData.DunkinId._text });
-    employee = employees && employees.length > 0 ? employees[0] : null;
-    if (!employee) employee = await create(employeeData);
-    return employee;
+function create(employeeData) {
+    return {
+        dunkinId: employeeData.DunkinId._text,
+        dunkinBranch: employeeData.DunkinBranch._text,
+        firstName: employeeData.FirstName._text,
+        lastName: employeeData.LastName._text,
+        dob: employeeData.DOB._text,
+        phoneNumber: '15121231111'
+    }
 }
 
-async function create(employeeData) {
-    const employee = new Employee();
-    employee.dunkinId = employeeData.DunkinId._text;
-    employee.dunkinBranch = employeeData.DunkinBranch._text
-    employee.firstName = employeeData.FirstName._text;
-    employee.lastName = employeeData.LastName._text
-    employee.dob = employeeData.DOB._text;
-    employee.phoneNumber = employeeData.PhoneNumber._text
-
-    await employee.save();
-    return employee;
+async function findOrCreateEntity(employee, entityAndAccountMap) {
+    if (!employee.entityId) {
+        if (!entityAndAccountMap.map.get(employee.dunkinId)) {
+            const entityId = (await createEntity(employee)).id;
+            employee.entityId = entityId;
+            entityAndAccountMap.map.set(employee.dunkinId, entityId)
+        } else {
+            employee.entityId = entityAndAccountMap.map.get(employee.dunkinId)
+        }
+    }
 }
 
-async function addEntity(employee) {
+async function createEntity(employee) {
     const entity = await method.entities.create({
         type: 'individual',
         individual: {
@@ -39,9 +40,7 @@ async function addEntity(employee) {
         }
     });
 
-    employee.entityId = entity.id;
-    await employee.save();
     return entity;
 }
 
-module.exports = { findOrcreate, addEntity };
+module.exports = { create, findOrCreateEntity };

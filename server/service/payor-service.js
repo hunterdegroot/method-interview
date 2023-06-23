@@ -1,4 +1,3 @@
-const Payor = require('../models/payor-model')
 const { Method, Environments } = require('method-node');
 
 const method = new Method({
@@ -6,35 +5,37 @@ const method = new Method({
     env: Environments.dev,
 });
 
-async function findOrCreate(payorData) {
-    const payors = await Payor.find({ dunkinId: payorData.DunkinId._text, accountNumber: payorData.AccountNumber._text });
-    let payor = payors && payors.length > 0 ? payors[0] : null;
-    if (!payor) payor = await create(payorData);
-    return payor;
-}
-
-async function create(payorData) {
-    const payor = new Payor();
-    payor.dunkinId = payorData.DunkinId._text;
-    payor.abaRouting = payorData.ABARouting._text
-    payor.accountNumber = payorData.AccountNumber._text;
-    payor.name = payorData.Name._text
-    payor.dba = payorData.DBA._text;
-    payor.ein = payorData.EIN._text
-    const address = {
-        line1: payorData.Address.Line1._text,
-        line2: payorData.Address.Line2 ? payorData.Address.Line2._text : undefined,
-        city: payorData.Address.City._text,
-        state: payorData.Address.State._text,
-        zip: payorData.Address.Zip._text,
+async function findOrCreateEntity(payor, entityAndAccountMap) {
+    if (!payor.entityId) {
+        if (!entityAndAccountMap.map.get(payor.dunkinId)) {
+            const entityId = (await createEntity(payor)).id;
+            payor.entityId = entityId;
+            entityAndAccountMap.map.set(payor.dunkinId, entityId)
+        } else {
+            payor.entityId = entityAndAccountMap.map.get(payor.dunkinId)
+        }
     }
-    payor.address = address;
-
-    await payor.save();
-    return payor;
 }
 
-async function addEntity(payor) {
+function create(payorData) {
+    return {
+        dunkinId: payorData.DunkinId._text,
+        abaRouting: payorData.ABARouting._text,
+        accountNumber: payorData.AccountNumber._text,
+        name: payorData.Name._text,
+        dba: payorData.DBA._text,
+        ein: payorData.EIN._text,
+        address: {
+            line1: payorData.Address.Line1._text,
+            line2: payorData.Address.Line2 ? payorData.Address.Line2._text : undefined,
+            city: payorData.Address.City._text,
+            state: payorData.Address.State._text,
+            zip: payorData.Address.Zip._text,
+        }
+    }
+}
+
+async function createEntity(payor) {
     const entity = await method.entities.create({
         type: 'c_corporation',
         corporation: {
@@ -52,9 +53,7 @@ async function addEntity(payor) {
         },
     });
 
-    payor.entityId = entity.id;
-    await payor.save();
     return entity;
 }
 
-module.exports = { findOrCreate, addEntity }
+module.exports = { findOrCreateEntity, create }

@@ -1,6 +1,5 @@
 var { Parser } = require('json2csv')
-const Payment = require('../models/payment-model')
-const Payor = require('../models/payor-model')
+const paymentService = require('../service/payment-service')
 
 async function accountReport() {
     const fields = [{
@@ -12,13 +11,10 @@ async function accountReport() {
     }]
 
     const json2csv = new Parser({ fields: fields })
-
-    const payments = await Payment.find();
-
+    const payments = await paymentService.get();
     const accountTotalMap = {};
     for (const payment of payments) {
-        const payor = (await Payor.find({ _id: payment.payor }))[0]
-        const accountNumber = payor.accountNumber;
+        const accountNumber = payment.payor.accountNumber;
         const amount = payment.amount;
 
         if (!accountTotalMap[accountNumber])
@@ -47,13 +43,10 @@ async function branchReport() {
     }]
 
     const json2csv = new Parser({ fields: fields })
-
-    const payments = await Payment.find();
-
+    const payments = await paymentService.get();
     const accountTotalMap = {};
     for (const payment of payments) {
-        const payor = (await Payor.find({ _id: payment.payor }))[0]
-        const dunkinId = payor.dunkinId;
+        const dunkinId = payment.payor.dunkinId;
         const amount = payment.amount;
 
         if (!accountTotalMap[dunkinId])
@@ -73,6 +66,7 @@ async function branchReport() {
 }
 
 async function paymentReport() {
+    const payments = await paymentService.get();
     const fields = [{
         label: 'Account',
         value: 'accountNumber'
@@ -93,12 +87,10 @@ async function paymentReport() {
     }]
 
     const json2csv = new Parser({ fields: fields })
-
     const jsonData = [];
-    const payments = await Payment.find();
 
     for (const payment of payments) {
-        const payor = (await Payor.find({ _id: payment.payor }))[0]
+        const payor = payment.payor
         const accountNumber = payor.accountNumber;
         const dunkinId = payor.dunkinId;
         const amount = payment.amount;

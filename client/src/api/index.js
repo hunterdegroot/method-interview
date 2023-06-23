@@ -4,10 +4,26 @@ const api = axios.create({
     baseURL: 'http://localhost:5000/api',
 })
 
-export const preProcessBatch = file => api.post(`/preProcessBatch`, file)
+export const stageBatch = file => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    return axios({
+        method: "post",
+        url: "http://localhost:5000/api/batch/stage",
+        data: formData,
+        headers: { "Content-Type": "multipart/form-data" },
+    })
+    // return api.post(`/batch/stage`, {
+    //     data: formData,
+    //     headers: { "Content-Type": "multipart/form-data" },
+    // })
+}
+
+export const queBatch = batchId => api.post(`/batch/que`, { batchId })
 
 const apis = {
-    preProcessBatch,
+    stageBatch, queBatch
 }
 
 export default apis

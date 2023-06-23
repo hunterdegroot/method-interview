@@ -20,16 +20,9 @@ class Upload extends Component {
         }
     }
 
-    preProcess = async () => {
-        const formData = new FormData();
-        formData.append("file", this.state.selectedFile);
+    stage = async () => {
         try {
-            await axios({
-                method: "post",
-                url: "http://localhost:5000/api/batch/preProcess",
-                data: formData,
-                headers: { "Content-Type": "multipart/form-data" },
-            }).then(res => this.setState({
+            api.stageBatch(this.state.selectedFile).then(res => this.setState({
                 data: res.data.data,
                 batchId: res.data.batchId,
                 processed: false
@@ -39,16 +32,14 @@ class Upload extends Component {
         }
     }
 
-    process = async () => {
-        const url = `http://localhost:5000/api/batch/process/${this.state.batchId}`
+    que = async () => {
         try {
-            await axios.get(url).then(res => this.setState({
+            await api.queBatch(this.state.batchId).then(res => this.setState({
                 processed: true,
             }));
         } catch (error) {
             console.log(error)
         }
-        this.setState()
     }
 
     handleFileSelect = (event) => {
@@ -85,7 +76,7 @@ class Upload extends Component {
 
         return (
             <Wrapper>
-                <form onSubmit={(e) => { e.preventDefault(); this.preProcess(this.state.selectedFile) }}>
+                <form onSubmit={(e) => { e.preventDefault(); this.stage() }}>
                     <input type="file" onChange={this.handleFileSelect} />
                     <input type="submit" value="Upload File" />
                 </form>
@@ -101,7 +92,7 @@ class Upload extends Component {
                 )}
                 <br />
                 {!!data.length && !processed && (
-                    <form onSubmit={(e) => { e.preventDefault(); this.process(this.state.selectedFile) }}>
+                    <form onSubmit={(e) => { e.preventDefault(); this.que() }}>
                         <input type="submit" value="Process" />
                     </form>
                 )}

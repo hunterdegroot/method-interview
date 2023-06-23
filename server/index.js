@@ -2,8 +2,7 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const cors = require('cors')
 
-const Payment = require('./models/payment-model');
-const paymentService = require('./service/payment-service');
+const batchService = require('./service/batch-service');
 const cron = require('node-cron');
 
 const db = require('./db')
@@ -21,11 +20,12 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 app.use('/api', uploadRouter)
 app.use('/api', reportsRouter)
 
-cron.schedule('* * * * *', async () => {
-    const payments = await Payment.find({ status: 'processing' });
-    for (const payment of payments) {
-        paymentService.process(payment);
-    }
+cron.schedule('* * * * *', () => {
+    batchService.preProcess();
+});
+
+cron.schedule('*/10 * * * *', () => {
+    batchService.updateProcessStatus();
 });
 
 app.listen(apiPort, () => console.log(`Server running on port ${apiPort}`))

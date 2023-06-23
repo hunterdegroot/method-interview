@@ -24,6 +24,7 @@ const Payor = new Schema(
     },
     { timestamps: true },
 )
+
 const Payee = new Schema(
     {
         plaidId: { type: String, required: true },
@@ -31,6 +32,7 @@ const Payee = new Schema(
     },
     { timestamps: true },
 )
+
 const Employee = new Schema(
     {
         dunkinId: { type: String, required: true },
@@ -43,7 +45,6 @@ const Employee = new Schema(
     },
     { timestamps: true },
 )
-
 
 const Payment = new Schema(
     {
@@ -68,11 +69,11 @@ const Payment = new Schema(
     { timestamps: true },
 )
 
-
-
 const Batch = new Schema(
     {
         payments: { type: [Payment], required: true },
+        status: { type: String },
+        error: { type: String },
     },
     { timestamps: true },
 )

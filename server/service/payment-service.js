@@ -1,7 +1,3 @@
-const Payment = require('../models/payment-model')
-const Employee = require('../models/employee-model')
-const Payor = require('../models/payor-model')
-const Payee = require('../models/payee-model')
 const employeeService = require('./employee-service')
 const payorService = require('./payor-service')
 const payeeService = require('./payee-service')
@@ -15,106 +11,72 @@ const method = new Method({
 });
 
 function create(rowData) {
+    const employee = employeeService.create(rowData.Employee);
+    const payor = payorService.create(rowData.Payor);
+    const payee = payeeService.create(rowData.Payee);
+    const amount = Number(rowData.Amount._text.replace(/[^0-9.-]+/g, ""))
+
     return {
-        employee: {
-            dunkinId: rowData.Employee.DunkinId._text,
-            dunkinBranch: rowData.Employee.DunkinBranch._text,
-            firstName: rowData.Employee.FirstName._text,
-            lastName: rowData.Employee.LastName._text,
-            dob: rowData.Employee.DOB._text,
-            phoneNumber: '15121231111'
-            // rowData.Employee.PhoneNumber._text,
-        },
-        payor: {
-            dunkinId: rowData.Payor.DunkinId._text,
-            abaRouting: rowData.Payor.ABARouting._text,
-            accountNumber: rowData.Payor.AccountNumber._text,
-            name: rowData.Payor.Name._text,
-            dba: rowData.Payor.DBA._text,
-            ein: rowData.Payor.EIN._text,
-            address: {
-                line1: rowData.Payor.Address.Line1._text,
-                line2: rowData.Payor.Address.Line2 ? payorData.Address.Line2._text : undefined,
-                city: rowData.Payor.Address.City._text,
-                state: rowData.Payor.Address.State._text,
-                zip: rowData.Payor.Address.Zip._text,
-            }
-        },
-        payee: {
-            plaidId: rowData.Payee.PlaidId._text,
-            loanAccountNumber: rowData.Payee.LoanAccountNumber._text
-        },
-        amount: Number(rowData.Amount._text.replace(/[^0-9.-]+/g, ""))
+        employee,
+        payor,
+        payee,
+        amount
     }
-
-
-    // const payment = new Payment();
-
-    // const employee = await employeeService.getEmployee(rowData.Employee);
-    // const payor = await payorService.getPayor(rowData.Payor);
-    // const payee = await payeeService.getPayee(rowData.Payee);
-
-    // payment.employee = employee;
-    // payment.payor = payor;
-    // payment.payee = payee;
-    // payment.amount = Number(rowData.Amount._text.replace(/[^0-9.-]+/g, ""));
-
-    // return await payment.save();
 }
 
-async function preProcess(data) {
-    const payment = new Payment();
-
-    payment.employee = await employeeService.findOrcreate(data.Employee);
-    payment.payor = await payorService.findOrCreate(data.Payor);
-    payment.payee = await payeeService.findOrCreate(data.Payee);
-    payment.amount = Number(data.Amount._text.replace(/[^0-9.-]+/g, ""));
-    payment.status = 'preProcess'
-
-    return await payment.save();
+async function createEntitiesAndAccounts(payment, entityAndAccountMap) {
+    try {
+        await employeeService.findOrCreateEntity(payment.employee, entityAndAccountMap);
+        await payorService.findOrCreateEntity(payment.payor, entityAndAccountMap);
+        await accountService.findOrCreateDestinationAccount(payment, entityAndAccountMap);
+        await accountService.findOrCreateSourceAccount(payment, entityAndAccountMap);
+    } catch (e) {
+        handleError(payment, e)
+    }
 }
 
 async function process(payment) {
     try {
-        const employee = (await Employee.find({ _id: payment.employee }))[0]
-        if (!employee.entityId) await employeeService.addEntity(employee);
-
-        const payor = (await Payor.find({ _id: payment.payor }))[0]
-        if (!payor.entityId) await payorService.addEntity(payor);
-
-        const payee = (await Payee.find({ _id: payment.payee }))[0]
-
-        payment.destAcctId = (await accountService.findOrCreateDestinationAccount(
-            employee.entityId,
-            payee.plaidId,
-            payee.loanAccountNumber)).methodId;
-
-        payment.srcAcctId = (await accountService.findOrCreateSourceAccount(
-            payor.entityId,
-            payor.accountNumber,
-            payor.abaRouting)).methodId;
-
         const methodPayment = await method.payments.create({
             amount: parseInt(payment.amount * 100),
             source: payment.srcAcctId,
             destination: payment.destAcctId,
             description: 'Loan Pmt',
         });
-
         payment.methodPaymentId = methodPayment.id;
-        payment.status = 'processed'
-        await payment.save();
+        payment.status = methodPayment.status
     } catch (e) {
-        console.log(e)
-        payment.status = 'errored'
-        payment.error = e;
-        await payment.save();
+        handleError(payment, e)
     }
 }
 
-async function que(payment) {
-    payment.status = 'processing'
-    await payment.save();
+function handleError(payment, e) {
+    if (e.message.includes('400')) {
+        payment.status = 'errored'
+        payment.error = e.message;
+        console.log(e.message)
+    } else {
+        que(payment)
+    }
 }
 
-module.exports = { create, preProcess, process, que }
+function que(payment) {
+    payment.status = 'queued'
+}
+
+async function get() {
+    const batches = await Batch.find();
+    let payments = [];
+    for (batch of batches) {
+        payments = payments.concat(batch.payments);
+    }
+    return payments;
+}
+
+async function updateProcessStatus(payment) {
+    const status = await method.payments.get(payment.methodPaymentId);
+    payment.status = status;
+    return status;
+}
+
+module.exports = { create, process, que, createEntitiesAndAccounts, get, updateProcessStatus }
