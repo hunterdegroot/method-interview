@@ -3,17 +3,25 @@ const EntityAndAccountMap = require('../models/entity-and-account-map-model')
 const paymentService = require('./payment-service')
 
 async function stage(batchData) {
-    const batchObj = {};
-    const payments = [];
+    const batches = [];
+    let payments = [];
 
+    let i = 0;
     for (const paymentData of batchData) {
         payments.push(paymentService.create(paymentData))
+        i++
+        if (i % 500 == 0) {
+            const batch = new Batch({ payments })
+            batches.push(batch);
+            batch.save();
+            payments = [];
+        };
     }
 
-    batchObj.payments = payments;
-    const batch = new Batch(batchObj)
-    await batch.save();
-    return batch;
+    const batch = new Batch({ payments })
+    batches.push(batch);
+    batch.save();
+    return batches;
 }
 
 async function preProcess() {
@@ -22,16 +30,20 @@ async function preProcess() {
     await markQueuedBatchesPreProcessing(batches);
     const entityAndAccountMap = await createEntityAndAccountMap(batches);
 
+    const promises = [];
+
     for (const batch of batches) {
         batch.status = 'preProcessed';
-        const promises = [];
         for (const payment of batch.payments) {
             if (payment.status == 'preprocessing') promises.push(paymentService.process(payment, entityAndAccountMap));
         }
-        Promise.all(promises).then(async () => {
-            updatePreProcessStatus(batch)
-        });
     }
+
+    Promise.all(promises).then(async () => {
+        for (const batch of batches) {
+            updatePreProcessStatus(batch)
+        }
+    });
 }
 
 async function createEntityAndAccountMap(batches) {
@@ -62,14 +74,20 @@ async function markQueuedBatchesPreProcessing(batches) {
     }
 }
 
-async function que(batchId) {
-    const batch = (await Batch.find({ _id: batchId }))[0];
-    const payments = batch.payments;
-    for (const payment of payments) {
-        paymentService.que(payment);
+async function que(batchIds) {
+    const batches = [];
+    for (const batchId of batchIds) {
+        batches.push((await Batch.find({ _id: batchId }))[0]);
     }
-    batch.status = 'queued';
-    await batch.save();
+
+    for (const batch of batches) {
+        const payments = batch.payments;
+        for (const payment of payments) {
+            paymentService.que(payment);
+        }
+        batch.status = 'queued';
+        await batch.save();
+    }
 }
 
 async function updatePreProcessStatus(batch) {

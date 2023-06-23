@@ -52,7 +52,7 @@ async function process(payment) {
 }
 
 function handleError(payment, e) {
-    if (e.message.includes('400')) {
+    if (e && e.message && e.message.includes('400')) {
         payment.status = 'errored'
         payment.error = e.message;
         console.log(e.message)

@@ -17,6 +17,7 @@ class Upload extends Component {
             data: [],
             selectedFile: null,
             processed: false,
+            batchIds: []
         }
     }
 
@@ -24,7 +25,7 @@ class Upload extends Component {
         try {
             api.stageBatch(this.state.selectedFile).then(res => this.setState({
                 data: res.data.data,
-                batchId: res.data.batchId,
+                batchIds: res.data.batchIds,
                 processed: false
             }));
         } catch (error) {
@@ -34,7 +35,7 @@ class Upload extends Component {
 
     que = async () => {
         try {
-            await api.queBatch(this.state.batchId).then(res => this.setState({
+            await api.queBatches(this.state.batchIds).then(res => this.setState({
                 processed: true,
             }));
         } catch (error) {

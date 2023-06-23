@@ -20,10 +20,10 @@ export const stageBatch = file => {
     // })
 }
 
-export const queBatch = batchId => api.post(`/batch/que`, { batchId })
+export const queBatches = batchIds => api.post(`/batch/que`, { batchIds })
 
 const apis = {
-    stageBatch, queBatch
+    stageBatch, queBatches
 }
 
 export default apis

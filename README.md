@@ -1,3 +1,8 @@
+expecting upload file to have "root" as the root tag:
+<root>
+    <row>
+        ...
+
 for local client (windows):
 set NODE_OPTIONS=--openssl-legacy-provider
 
