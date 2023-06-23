@@ -41,7 +41,7 @@ async function preProcess() {
 
     Promise.all(promises).then(async () => {
         for (const batch of batches) {
-            updatePreProcessStatus(batch)
+            await updatePreProcessStatus(batch)
         }
     });
 }
