@@ -1,6 +1,6 @@
 expecting upload file to have "root" as the root tag:
-<root>
-    <row>
+\<root\>
+    \<row\>
         ...
 
 for local client (windows):
