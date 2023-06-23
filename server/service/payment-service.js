@@ -2,6 +2,7 @@ const employeeService = require('./employee-service')
 const payorService = require('./payor-service')
 const payeeService = require('./payee-service')
 const accountService = require('./account-service');
+const Batch = require('../models/batch-model');
 
 const { Method, Environments } = require('method-node');
 
