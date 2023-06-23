@@ -24,7 +24,7 @@ cron.schedule('* * * * *', () => {
     batchService.preProcess();
 });
 
-cron.schedule('*/10 * * * *', () => {
+cron.schedule('0 */4 * * *', () => {
     batchService.updateProcessStatus();
 });
 
