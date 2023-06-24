@@ -1,41 +1,46 @@
 const Batch = require('../models/batch-model')
 const EntityAndAccountMap = require('../models/entity-and-account-map-model')
 const paymentService = require('./payment-service')
+const timeout = require('../util/timeout')
 
 async function stage(batchData) {
-    const batches = [];
+    const batchIds = [];
     let payments = [];
-
-    let i = 0;
+    let i = 1;
     for (const paymentData of batchData) {
         payments.push(paymentService.create(paymentData))
         i++
         if (i % 500 == 0) {
             const batch = new Batch({ payments })
-            batches.push(batch);
-            batch.save();
+            batchIds.push(batch._id);
+            await batch.save();
             payments = [];
         };
     }
 
     const batch = new Batch({ payments })
-    batches.push(batch);
-    batch.save();
-    return batches;
+    batchIds.push(batch._id);
+    await batch.save();
+    return batchIds;
 }
 
 async function preProcess() {
-    if((await Batch.find({ status: 'preProcessing' })).length) return;
+    if ((await Batch.find({ status: 'preProcessing' })).length) return;
     const batches = await Batch.find({ status: 'queued' });
     console.log(batches.length)
     await markQueuedBatchesPreProcessing(batches);
     const entityAndAccountMap = await createEntityAndAccountMap(batches);
 
+    console.time()
     const promises = [];
-
+    let i = 0;
     for (const batch of batches) {
         batch.status = 'preProcessed';
         for (const payment of batch.payments) {
+            i++;
+            if (i % 600 == 0) {
+                await timeout(60000);
+            };
             if (payment.status == 'preProcessing') promises.push(paymentService.process(payment, entityAndAccountMap));
         }
     }
@@ -44,6 +49,7 @@ async function preProcess() {
         for (const batch of batches) {
             await updatePreProcessStatus(batch)
         }
+        console.timeEnd()
     });
 }
 
@@ -120,5 +126,6 @@ function tableData(batchData) {
         amount: row.Amount._text,
     }))
 }
+
 
 module.exports = { stage, que, tableData, preProcess, updateProcessStatus }

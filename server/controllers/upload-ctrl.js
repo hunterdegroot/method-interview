@@ -8,12 +8,9 @@ stageBatch = async (req, res) => {
     var result = convert.xml2json(xml, { compact: true, spaces: 4 });
     const batchData = JSON.parse(result);
 
-    const batches = await batchService.stage(batchData.root.row);
-    const batchIds = [];
-    for (const batch of batches) {
-        batchIds.push(batch._id);
-    }
-
+    console.time()
+    const batchIds = await batchService.stage(batchData.root.row);
+    console.timeEnd()
     return res.status(200).json({
         success: true,
         data: batchService.tableData(JSON.parse(result).root.row),
