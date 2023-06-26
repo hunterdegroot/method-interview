@@ -1,7 +1,10 @@
 const mongoose = require('mongoose')
+require('dotenv').config();
+
+const { DB_URL } = process.env;
 
 mongoose
-    .connect('mongodb://localhost:27017/loanPayments', { useNewUrlParser: true })
+    .connect(DB_URL, { useNewUrlParser: true })
     .catch(e => {
         console.error('Connection error', e.message)
     })

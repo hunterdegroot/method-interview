@@ -66,7 +66,7 @@ async function branchReport() {
 }
 
 async function paymentReport() {
-    const payments = await paymentService.get();
+    const payments = await paymentService.getOrdered();
     const fields = [{
         label: 'Account',
         value: 'accountNumber'
@@ -84,7 +84,15 @@ async function paymentReport() {
     {
         label: 'Error',
         value: 'error'
-    }]
+    },
+    {
+        label: 'Created At',
+        value: 'createdAt'
+    },
+    {
+        label: 'Updated At',
+        value: 'updatedAt'
+    }];
 
     const json2csv = new Parser({ fields: fields })
     const jsonData = [];

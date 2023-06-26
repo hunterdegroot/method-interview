@@ -1,5 +1,6 @@
 import React, { Component } from 'react'
 import styled from 'styled-components'
+const { REACT_APP_API_URL } = process.env;
 
 const Wrapper = styled.div`
     padding: 40px;
@@ -16,7 +17,7 @@ export default class Report extends Component {
 
     downloadReport(e) {
         e.preventDefault();
-        window.location = 'http://localhost:5000/api/report/' + document.getElementById('report').value;
+        window.location = `${REACT_APP_API_URL}/report/` + document.getElementById('report').value;
     }
 
 

@@ -21,12 +21,11 @@ class Upload extends Component {
         }
     }
 
-    stage = async () => {
+    parse = async () => {
         this.setState({ data: [], stageLoading: true })
         try {
-            api.stageBatch(this.state.selectedFile).then(res => this.setState({
+            api.parseBatch(this.state.selectedFile).then(res => this.setState({
                 data: res.data.data,
-                batchIds: res.data.batchIds,
                 processed: false,
                 stageLoading: false
             }));
@@ -38,7 +37,7 @@ class Upload extends Component {
     que = async () => {
         this.setState({ processedLoading: true })
         try {
-            await api.queBatches(this.state.batchIds).then(res => this.setState({
+            await api.queBatch(this.state.selectedFile).then(res => this.setState({
                 processed: true,
                 processedLoading: false
             }));
@@ -51,11 +50,12 @@ class Upload extends Component {
         this.setState({
             selectedFile: event.target.files[0],
             processed: false,
+            data: []
         })
     }
 
     render() {
-        const { data, processed, processedLoading, stageLoading } = this.state
+        const { data, processed, processedLoading, stageLoading, selectedFile } = this.state
         const columns = [
             {
                 Header: 'Employee Name',
@@ -81,9 +81,9 @@ class Upload extends Component {
 
         return (
             <Wrapper>
-                <form onSubmit={(e) => { e.preventDefault(); this.stage() }}>
+                <form onSubmit={(e) => { e.preventDefault(); this.parse() }}>
                     <input type="file" onChange={this.handleFileSelect} />
-                    <input type="submit" value="Upload File" />
+                    {!!selectedFile && <input type="submit" value="Upload File" />}
                 </form>
                 <br />
                 {(!!data.length || stageLoading) && (

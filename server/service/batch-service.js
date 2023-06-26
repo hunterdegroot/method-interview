@@ -3,119 +3,124 @@ const EntityAndAccountMap = require('../models/entity-and-account-map-model')
 const paymentService = require('./payment-service')
 const timeout = require('../util/timeout')
 
+// save payments in 600 payment batches and que for preProcessing
 async function stage(batchData) {
-    const batchIds = [];
+    const batches = [];
     let payments = [];
     let i = 1;
     for (const paymentData of batchData) {
         payments.push(paymentService.create(paymentData))
-        i++
-        if (i % 500 == 0) {
-            const batch = new Batch({ payments })
-            batchIds.push(batch._id);
-            await batch.save();
+        if (i % 600 == 0) {
+            batches.push(create(payments));
             payments = [];
         };
+        i++
     }
 
-    const batch = new Batch({ payments })
-    batchIds.push(batch._id);
-    await batch.save();
-    return batchIds;
+    batches.push(create(payments));
+    return batches;
 }
 
-async function preProcess() {
-    if ((await Batch.find({ status: 'preProcessing' })).length) return;
-    const batches = await Batch.find({ status: 'queued' });
-    console.log(batches.length)
-    await markQueuedBatchesPreProcessing(batches);
-    const entityAndAccountMap = await createEntityAndAccountMap(batches);
+function create(payments) {
+    const batch = new Batch({ payments })
+    batch.status = 'preProcessing';
+    batch.save();
+    return batch;
+}
 
-    console.time()
-    const promises = [];
-    let i = 0;
+// create method payments and requeue batch if there's an error *buffer requests 600/min*
+async function preProcess(batchData) {
+    console.time('staging')
+    const batches = await stage(batchData);
+    console.timeEnd('staging');
+
+    await timeout(60000)
+    console.time('entity creation')
+    const entityAndAccountMap = await createEntityAndAccountMap(batches);
+    console.timeEnd('entity creation')
+
+    console.time('payment creation')
     for (const batch of batches) {
+        const promises = [];
+        await timeout(60000)
         batch.status = 'preProcessed';
         for (const payment of batch.payments) {
-            i++;
-            if (i % 600 == 0) {
-                await timeout(60000);
-            };
-            if (payment.status == 'preProcessing') promises.push(paymentService.process(payment, entityAndAccountMap));
+            promises.push(paymentService.process(payment, entityAndAccountMap));
         }
-    }
 
-    Promise.all(promises).then(async () => {
-        for (const batch of batches) {
-            await updatePreProcessStatus(batch)
+        try {
+            await Promise.all(promises);
+        } catch {
+            // a pinch of retry for good measure
+            const retryPromises = promises.filter(p => p.status === 'errored').map(p => paymentService.process(p.payment, entityAndAccountMap));
+            try {
+                await Promise.all(retryPromises);
+                console.log('Failed payments rerun successfully.');
+            } catch (rerunError) {
+                batch.status = 'errored'
+                promises.forEach(p => {
+                    if (p.status === 'errored') {
+                        p.payment.status = 'errored';
+                    }
+                });
+            }
         }
-        console.timeEnd()
-    });
+
+        await batch.save();
+    }
+    console.timeEnd('payment creation')
 }
 
+// create method entities and accounts and store their refs in mongo as a map
 async function createEntityAndAccountMap(batches) {
-    if (!(await EntityAndAccountMap.find()).length) {
-        (await (new EntityAndAccountMap()).save())
+    let entityAndAccountMap = await EntityAndAccountMap.findOne();
+    if (!entityAndAccountMap) {
+        entityAndAccountMap = new EntityAndAccountMap();
+        await entityAndAccountMap.save();
     }
 
-    const entityAndAccountMap = (await EntityAndAccountMap.find())[0];
+    let i = 1;
     for (const batch of batches) {
         for (const payment of batch.payments) {
-            if (payment.status == 'preProcessing') await paymentService.createEntitiesAndAccounts(payment, entityAndAccountMap);
+            // if (i % 150 == 0) {
+            //     await timeout(60000);
+            // }
+            await paymentService.createEntitiesAndAccounts(payment, entityAndAccountMap);
+            i++;
         }
         await entityAndAccountMap.save();
         await batch.save();
+        promises = [];
     }
 
     return entityAndAccountMap;
 }
 
-async function markQueuedBatchesPreProcessing(batches) {
-    for (const batch of batches) {
-        batch.status = 'preProcessing';
-        for (const payment of batch.payments) {
-            if (payment.status === 'queued') payment.status = 'preProcessing'
-        }
-        await batch.save();
-    }
-}
-
-async function que(batchIds) {
-    const batches = [];
-    for (const batchId of batchIds) {
-        batches.push((await Batch.find({ _id: batchId }))[0]);
-    }
-
-    for (const batch of batches) {
-        const payments = batch.payments;
-        for (const payment of payments) {
-            paymentService.que(payment);
-        }
-        batch.status = 'queued';
-        await batch.save();
-    }
-}
-
-async function updatePreProcessStatus(batch) {
-    for (const payment of batch.payments) {
-        if (payment.status == 'errored') batch.status = 'errored';
-        if (payment.status == 'queued') {
-            batch.status = 'queued';
-            break;
-        }
-    }
-    await batch.save();
-}
-
+// updates payments from method *executed by cron job every 4 hours*
 async function updateProcessStatus() {
+    if ((await Batch.find({ status: 'preProcessing' })).length) return;
     const batches = await Batch.find({ status: 'preProcessed' });
+
+    console.time('update payments from method')
     for (const batch of batches) {
+        await timeout(60000)
+        if ((await Batch.find({ status: 'preProcessing' })).length) return;
+        const promises = [];
+        for (const payment of batch.payments) {
+            try {
+                promises.push(paymentService.updateProcessStatus(payment))
+            } catch (e) {
+                console.log(e)
+            }
+        }
+        await Promise.all(promises);
         batch.status = 'sent';
         for (const payment of batch.payments) {
-            if (await paymentService.updateProcessStatus(payment) != 'sent') batch.status = 'preProcessed';
+            if (payment.status != 'sent') batch.status = 'preProcessed';
         }
+        await batch.save();
     }
-    await batch.save();
+    console.timeEnd('update payments from method')
 }
 
 function tableData(batchData) {
@@ -127,5 +132,4 @@ function tableData(batchData) {
     }))
 }
 
-
-module.exports = { stage, que, tableData, preProcess, updateProcessStatus }
+module.exports = { stage, tableData, preProcess, updateProcessStatus }

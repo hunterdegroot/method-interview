@@ -9,6 +9,8 @@ RUN yarn install
 
 COPY . .
 
+COPY docker.env .env
+
 EXPOSE 5000
 
 CMD [ "index.js" ]

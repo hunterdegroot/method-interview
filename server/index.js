@@ -20,10 +20,6 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'))
 app.use('/api', uploadRouter)
 app.use('/api', reportsRouter)
 
-cron.schedule('* * * * *', () => {
-    batchService.preProcess();
-});
-
 cron.schedule('0 */4 * * *', () => {
     batchService.updateProcessStatus();
 });

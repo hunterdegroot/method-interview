@@ -65,6 +65,7 @@ const Payment = new Schema(
         error: { type: String },
         srcAcctId: { type: String },
         destAcctId: { type: String },
+        methodPaymentId: { type: String },
     },
     { timestamps: true },
 )
