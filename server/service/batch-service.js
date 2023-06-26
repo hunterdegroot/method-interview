@@ -79,18 +79,12 @@ async function createEntityAndAccountMap(batches) {
         await entityAndAccountMap.save();
     }
 
-    let i = 1;
     for (const batch of batches) {
         for (const payment of batch.payments) {
-            // if (i % 150 == 0) {
-            //     await timeout(60000);
-            // }
             await paymentService.createEntitiesAndAccounts(payment, entityAndAccountMap);
-            i++;
         }
         await entityAndAccountMap.save();
         await batch.save();
-        promises = [];
     }
 
     return entityAndAccountMap;

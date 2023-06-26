@@ -27,14 +27,12 @@ function create(rowData) {
 
 async function createEntitiesAndAccounts(payment, entityAndAccountMap) {
     try {
-        return [
-            await employeeService.findOrCreateEntity(payment.employee, entityAndAccountMap),
-            await payorService.findOrCreateEntity(payment.payor, entityAndAccountMap),
-            await accountService.findOrCreateDestinationAccount(payment, entityAndAccountMap),
-            await accountService.findOrCreateSourceAccount(payment, entityAndAccountMap)]
+        await Promise.all([
+            accountService.findOrCreateDestinationAccount(payment, entityAndAccountMap),
+            accountService.findOrCreateSourceAccount(payment, entityAndAccountMap)
+        ])
     } catch (e) {
         handleError(payment, e)
-        return [];
     }
 }
 

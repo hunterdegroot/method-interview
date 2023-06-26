@@ -1,3 +1,5 @@
+const payorService = require('./payor-service')
+const employeeService = require('./employee-service')
 const { Method, Environments } = require('method-node');
 
 const method = new Method({
@@ -6,6 +8,7 @@ const method = new Method({
 });
 
 async function findOrCreateDestinationAccount(payment, entityAndAccountMap) {
+  await employeeService.findOrCreateEntity(payment.employee, entityAndAccountMap);
   if (!payment.destAcctId) {
     if (!entityAndAccountMap.map.get(payment.employee.entityId + payment.payee.plaidId + payment.payee.loanAccountNumber)) {
       const destAcctId = (await createDestinationAccount(
@@ -21,6 +24,7 @@ async function findOrCreateDestinationAccount(payment, entityAndAccountMap) {
 }
 
 async function findOrCreateSourceAccount(payment, entityAndAccountMap) {
+  await payorService.findOrCreateEntity(payment.payor, entityAndAccountMap);
   if (!payment.srcAcctId) {
     if (!entityAndAccountMap.map.get(payment.payor.entityId + payment.payor.accountNumber + payment.payor.abaRouting)) {
       const srcAcctId = (await createSourceAccount(
