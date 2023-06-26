@@ -76,22 +76,18 @@ async function paymentReport() {
     }, {
         label: 'Amount',
         value: 'amount'
-    },
-    {
+    }, {
         label: 'Status',
         value: 'status'
-    },
-    {
-        label: 'Error',
-        value: 'error'
-    },
-    {
+    }, {
         label: 'Created At',
         value: 'createdAt'
-    },
-    {
+    }, {
         label: 'Updated At',
         value: 'updatedAt'
+    }, {
+        label: 'Error',
+        value: 'error'
     }];
 
     const json2csv = new Parser({ fields: fields })
@@ -103,6 +99,8 @@ async function paymentReport() {
         const dunkinId = payor.dunkinId;
         const amount = payment.amount;
         const status = payment.status;
+        const createdAt = payment.createdAt;
+        const updatedAt = payment.updatedAt;
         const error = payment.error;
 
         jsonData.push({
@@ -110,6 +108,8 @@ async function paymentReport() {
             dunkinId,
             amount,
             status,
+            createdAt,
+            updatedAt,
             error
         })
     }
